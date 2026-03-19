@@ -6,30 +6,27 @@
 
 <style>
 body {
-    margin: 0;
     font-family: Arial;
     background: linear-gradient(135deg, #4facfe, #00f2fe);
     color: white;
+    padding: 20px;
 }
 
 .container {
     max-width: 500px;
     margin: auto;
-    padding: 20px;
 }
 
 .card {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.2);
     padding: 15px;
     border-radius: 15px;
-    margin-top: 20px;
-    backdrop-filter: blur(10px);
+    margin-top: 10px;
 }
 
-input, textarea {
+textarea {
     width: 100%;
     padding: 10px;
-    margin-top: 5px;
     border-radius: 10px;
     border: none;
 }
@@ -39,13 +36,9 @@ button {
     padding: 10px;
     border: none;
     border-radius: 10px;
-    background: #ff7b00;
+    background: orange;
     color: white;
     cursor: pointer;
-}
-
-button:hover {
-    background: #ff5500;
 }
 
 .post {
@@ -54,145 +47,54 @@ button:hover {
     border-radius: 10px;
     margin-top: 10px;
 }
-
-.comment {
-    font-size: 14px;
-    margin-top: 5px;
-}
 </style>
-
 </head>
+
 <body>
 
 <div class="container">
+<h1>MySocial 🌍</h1>
 
-<h1>MySocial</h1>
-
-<!-- АВТОРИЗАЦИЯ -->
-<div id="auth" class="card">
-    <input id="username" placeholder="Имя">
-    <input id="password" type="password" placeholder="Пароль">
-    <button onclick="register()">Регистрация</button>
-    <button onclick="login()">Войти</button>
+<div class="card">
+<textarea id="text" placeholder="Напиши пост..."></textarea>
+<button onclick="sendPost()">Опубликовать</button>
 </div>
 
-<!-- ПРИЛОЖЕНИЕ -->
-<div id="app" style="display:none;">
-
-    <div class="card">
-        <h3 id="userDisplay"></h3>
-        <textarea id="postInput" placeholder="Что у тебя нового?"></textarea>
-        <button onclick="addPost()">Опубликовать</button>
-    </div>
-
-    <div id="feed"></div>
-
-</div>
-
+<div id="feed"></div>
 </div>
 
 <script>
-let currentUser = null;
-let users = JSON.parse(localStorage.getItem("users")) || {};
-let posts = JSON.parse(localStorage.getItem("posts")) || [];
+const SERVER = "http://10.0.1.14:3000"; // ТВОЙ IP
 
-function save() {
-    localStorage.setItem("users", JSON.stringify(users));
-    localStorage.setItem("posts", JSON.stringify(posts));
-}
+async function loadPosts() {
+    let res = await fetch(SERVER + "/posts");
+    let posts = await res.json();
 
-function register() {
-    let u = username.value.trim();
-    let p = password.value.trim();
-
-    if (!u || !p) return alert("Заполни поля");
-
-    if (users[u]) return alert("Пользователь уже есть");
-
-    users[u] = p;
-    save();
-    alert("Регистрация успешна!");
-
-    // авто-вход
-    currentUser = u;
-    startApp();
-}
-
-function login() {
-    let u = username.value.trim();
-    let p = password.value.trim();
-
-    if (users[u] === p) {
-        currentUser = u;
-        startApp();
-    } else {
-        alert("Неверный логин или пароль");
-    }
-}
-
-function startApp() {
-    auth.style.display = "none";
-    app.style.display = "block";
-    userDisplay.innerText = "Ты: " + currentUser;
-    renderPosts();
-}
-
-function addPost() {
-    let text = postInput.value.trim();
-    if (!text) return;
-
-    posts.unshift({
-        user: currentUser,
-        text: text,
-        likes: 0,
-        comments: []
-    });
-
-    postInput.value = "";
-    save();
-    renderPosts();
-}
-
-function likePost(i) {
-    posts[i].likes++;
-    save();
-    renderPosts();
-}
-
-function addComment(i) {
-    let text = prompt("Комментарий:");
-    if (!text) return;
-
-    posts[i].comments.push(text);
-    save();
-    renderPosts();
-}
-
-function renderPosts() {
     feed.innerHTML = "";
 
-    posts.forEach((p, i) => {
+    posts.reverse().forEach(p => {
         let div = document.createElement("div");
         div.className = "post";
-
-        div.innerHTML = `
-            <b>${p.user}</b><br>
-            ${p.text}<br><br>
-            ❤️ ${p.likes}
-            <button onclick="likePost(${i})">Лайк</button>
-            <button onclick="addComment(${i})">Коммент</button>
-        `;
-
-        p.comments.forEach(c => {
-            let com = document.createElement("div");
-            com.className = "comment";
-            com.innerText = "💬 " + c;
-            div.appendChild(com);
-        });
-
+        div.innerText = p.text;
         feed.appendChild(div);
     });
 }
+
+async function sendPost() {
+    let text = document.getElementById("text").value;
+    if (!text) return;
+
+    await fetch(SERVER + "/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+    });
+
+    document.getElementById("text").value = "";
+    loadPosts();
+}
+
+loadPosts();
 </script>
 
 </body>
